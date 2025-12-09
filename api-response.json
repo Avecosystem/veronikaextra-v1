@@ -1,0 +1,23 @@
+{
+  "statusCode": 200,
+  "headers": {
+    "date": "Tue, 09 Dec 2025 19:53:15 GMT",
+    "content-type": "application/json",
+    "content-length": "109",
+    "connection": "keep-alive",
+    "server": "cloudflare",
+    "x-ratelimit-limit-minute": "5",
+    "x-ratelimit-remaining-minute": "4",
+    "x-ratelimit-reset-minute": "2025-12-09T19:54:00.185253",
+    "x-ratelimit-limit-day": "300",
+    "x-ratelimit-remaining-day": "298",
+    "x-ratelimit-reset-day": "2025-12-10T00:00:00",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "cf-cache-status": "DYNAMIC",
+    "server-timing": "cfCacheStatus;desc=\"DYNAMIC\", cfEdge;dur=5,cfOrigin;dur=9779",
+    "cf-ray": "9ab70bf09f4df487-BOM"
+  },
+  "body": "{\"created\":1765309994,\"data\":[{\"url\":\"https://api.a4f.co/v1/images/serve/5842f984770a492d82c66412c39bad3c\"}]}"
+}
