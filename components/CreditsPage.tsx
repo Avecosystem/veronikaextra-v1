@@ -105,7 +105,7 @@ const CreditsPage: React.FC = () => {
     // Note: Cashfree appends ?order_id={order_id} to this URL
     const origin = window.location.origin;
     const isHttps = origin.startsWith('https://');
-    const devFallback = 'https://veronikaextra-image.onrender.com/';
+    const devFallback = 'https://veronikaextra-v1.onrender.com/';
     const baseUrl = (isHttps ? origin + window.location.pathname : devFallback);
     const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
     const returnUrl = `${cleanBaseUrl}#/profile`;
@@ -159,7 +159,7 @@ const CreditsPage: React.FC = () => {
     // Construct return URL
     const origin2 = window.location.origin;
     const isHttps2 = origin2.startsWith('https://');
-    const devFallback2 = 'https://veronikaextra-image.onrender.com/';
+    const devFallback2 = 'https://veronikaextra-v1.onrender.com/';
     const baseUrl2 = (isHttps2 ? origin2 + window.location.pathname : devFallback2);
     const cleanBaseUrl2 = baseUrl2.endsWith('/') ? baseUrl2 : baseUrl2 + '/';
     const returnUrl = `${cleanBaseUrl2}#/profile`;

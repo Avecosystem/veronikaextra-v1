@@ -418,6 +418,13 @@ app.post('/api/cashfree', async (req, res) => {
       return res.status(500).json({ message: 'Cashfree credentials missing' });
     }
     const customer_phone = (typeof customerPhone === 'string' && customerPhone.trim()) ? customerPhone.trim() : '9999999999';
+    let finalReturnUrl = returnUrl;
+    try {
+      const parsed = new URL(returnUrl || '');
+      if (parsed.protocol !== 'https:') throw new Error('invalid');
+    } catch {
+      finalReturnUrl = 'https://veronikaextra-v1.onrender.com/#/profile';
+    }
 
     const payload = {
       order_id: orderId,
@@ -430,7 +437,7 @@ app.post('/api/cashfree', async (req, res) => {
         customer_phone
       },
       order_meta: {
-        return_url: returnUrl
+        return_url: finalReturnUrl
       }
     };
 
