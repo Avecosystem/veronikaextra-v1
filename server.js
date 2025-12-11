@@ -57,7 +57,7 @@ const STORE = {
   ],
   contactInfo: { email1: 'infobabe09@gmail.com', email2: '', location: '', phone: '', note: '' },
   socialLinks: { instagram: '', twitter: '', website: '', general: '' },
-  legalContent: { terms: '', privacy: '' },
+  legalContent: { terms: '<h3>Terms of Service</h3><p>By using this service, you agree to purchase digital credits that allow you to generate images and access features offered within the application. Credits are non-transferable and non-refundable once consumed. You must not misuse the platform or attempt to interfere with service integrity. We may update plans, pricing, or features from time to time. Continued use constitutes acceptance of any changes.</p><h4>Account</h4><p>You are responsible for maintaining your account credentials. Do not share your token or login with others. We reserve the right to suspend accounts involved in abuse, fraud, or policy violations.</p><h4>Payments</h4><p>Payments are processed via integrated gateways. On successful payment, credits are added automatically to your account. In case of gateway delays, credits will be granted upon verification.</p><h4>Content</h4><p>Generated content must comply with applicable laws and platform guidelines. You agree not to generate unlawful or prohibited content.</p>', privacy: '<h3>Privacy Policy</h3><p>We collect the minimum information required to provide the service, including your name, email, country, and usage such as credit balance and transaction references. This data is used to authenticate, process payments, and deliver features.</p><h4>Data</h4><p>We store user profiles and transaction records to ensure credit accounting and support. We do not sell your personal data.</p><h4>Security</h4><p>We implement basic safeguards and token-based access. Do not share your token. Payments are handled by third-party processors; we do not store your full payment details.</p><h4>Updates</h4><p>Policies may change; continued use indicates acceptance.</p>' },
   claimedDeviceIds: [],
   exchangeRate: 83
 };
@@ -528,13 +528,39 @@ app.post('/api/oxapay', async (req, res) => {
       body: JSON.stringify(payload)
     });
     const data = await r.json();
-    if (data.result === 100 && data.payLink) {
-      return res.status(200).json({ success: true, paymentUrl: data.payLink });
-    }
-    console.error('Oxapay API Error:', data);
-    return res.status(400).json({ success: false, message: data.message || 'Failed to create crypto invoice' });
+  if (data.result === 100 && data.payLink) {
+    return res.status(200).json({ success: true, paymentUrl: data.payLink });
+  }
+  console.error('Oxapay API Error:', data);
+  return res.status(400).json({ success: false, message: data.message || 'Failed to create crypto invoice' });
   } catch (e) {
     console.error('Oxapay endpoint error:', e);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Oxapay verify
+app.post('/api/verify-oxapay', (req, res) => {
+  try {
+    const me = getUserByToken(req);
+    if (!me) return res.status(401).json({ message: 'Unauthorized.' });
+    const { orderId, status } = req.body || {};
+    if (!orderId) return res.status(400).json({ message: 'Missing orderId' });
+    const idx = STORE.cryptoTransactions.findIndex(t => t.orderId === orderId && t.userId === me.id);
+    if (idx === -1) return res.status(404).json({ message: 'Transaction not found' });
+    const s = String(status || '').toLowerCase();
+    const success = s === 'success' || s === 'paid' || s === 'completed';
+    if (success) {
+      STORE.cryptoTransactions[idx].status = 'paid';
+      const uIndex = STORE.users.findIndex(u => u.id === me.id);
+      if (uIndex > -1) {
+        STORE.users[uIndex].credits = (STORE.users[uIndex].credits || 0) + (STORE.cryptoTransactions[idx].credits || 0);
+      }
+      return res.status(200).json({ success: true, newCredits: STORE.users[uIndex]?.credits || me.credits });
+    }
+    return res.status(200).json({ success: false, message: 'Payment not completed' });
+  } catch (e) {
+    console.error('Verify Oxapay error:', e);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 });

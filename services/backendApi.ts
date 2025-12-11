@@ -123,7 +123,14 @@ export const backendApi = {
   },
 
   async verifyOxapayPayment(token: string, orderId: string, status: string): Promise<ApiResponse<{ newCredits: number }>> {
-    return { success: false, message: 'Crypto verification not supported.' };
+    const r = await fetch(`${getBase()}/api/verify-oxapay`, { method: 'POST', headers: withAuth(token), body: JSON.stringify({ orderId, status }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d?.success) {
+      const me = await this.getProfile(token);
+      if (me.success) return { success: true, data: { newCredits: me.data.credits } };
+      return { success: true, data: { newCredits: 0 } };
+    }
+    return { success: false, message: d?.message || 'Crypto payment verification failed.' };
   },
 
   async getAllUsers(token: string): Promise<ApiResponse<User[]>> {

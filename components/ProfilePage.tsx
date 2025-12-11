@@ -60,11 +60,12 @@ const ProfilePage: React.FC = () => {
              return;
           }
 
-          const response: ApiResponse<{ newCredits: number }> = await backendApi.verifyPaymentStatus(
-            token, 
-            orderIdToVerify, 
-            provider
-          );
+          let response: ApiResponse<{ newCredits: number }>;
+          if (provider === 'OXPAY') {
+            response = await backendApi.verifyOxapayPayment(token, orderIdToVerify as string, oxapayStatus || '');
+          } else {
+            response = await backendApi.verifyPaymentStatus(token, orderIdToVerify as string, provider);
+          }
           
           if (response.success) {
             setVerificationMessage({ type: 'success', text: `Payment successful! Your new balance is ${response.data.newCredits} credits.` });
