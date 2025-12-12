@@ -89,11 +89,16 @@ const isAdmin = (user) => !!(user && user.isAdmin);
 app.post('/api/register', (req, res) => {
   try {
     const { name, email, password, country, deviceId } = req.body || {};
-    if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
-    if (STORE.users.some(u => u.email === email)) return res.status(409).json({ message: 'Email already registered.' });
+    const normalize = (s) => (typeof s === 'string' ? s.trim() : '');
+    const nameNorm = normalize(name);
+    const emailNorm = normalize(email).toLowerCase();
+    const passwordNorm = normalize(password);
+    const countryNorm = normalize(country) || 'India';
+    if (!nameNorm || !emailNorm || !passwordNorm) return res.status(400).json({ message: 'Missing fields' });
+    if (STORE.users.some(u => u.email === emailNorm)) return res.status(409).json({ message: 'Email already registered.' });
     let starting = 25;
     if (deviceId && STORE.claimedDeviceIds.includes(deviceId)) starting = 0; else if (deviceId) STORE.claimedDeviceIds.push(deviceId);
-    const user = { id: STORE.nextUserId++, name, email, passwordHash: password, credits: starting, createdAt: new Date().toISOString(), isAdmin: false, country: country || 'India' };
+    const user = { id: STORE.nextUserId++, name: nameNorm, email: emailNorm, passwordHash: passwordNorm, credits: starting, createdAt: new Date().toISOString(), isAdmin: false, country: countryNorm };
     STORE.users.push(user);
     const token = generateToken();
     STORE.sessions[token] = user.id;
@@ -108,7 +113,10 @@ app.post('/api/register', (req, res) => {
 app.post('/api/login', (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const user = STORE.users.find(u => u.email === email && u.passwordHash === password);
+    const normalize = (s) => (typeof s === 'string' ? s.trim() : '');
+    const emailNorm = normalize(email).toLowerCase();
+    const passwordNorm = normalize(password);
+    const user = STORE.users.find(u => u.email === emailNorm && u.passwordHash === passwordNorm);
     if (!user) return res.status(401).json({ message: 'Invalid credentials.' });
     const token = generateToken();
     STORE.sessions[token] = user.id;
