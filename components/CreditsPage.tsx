@@ -47,7 +47,7 @@ const CreditsPage: React.FC = () => {
         }
       } catch (err) {
         console.error('Error fetching data for CreditsPage:', err);
-        setNoticeError('Failed to load page data.');
+        // Silent fallback for static hosts without backend
         setAvailableCreditPlans(CREDIT_PLANS);
       }
     };

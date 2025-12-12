@@ -38,12 +38,10 @@ const ImageGenerator: React.FC = () => {
         const response: ApiResponse<string> = await backendApi.getGlobalNotice();
         if (response.success) {
           setGlobalNotice(response.data);
-        } else {
-          setNoticeError(response.message || 'Failed to fetch global notice.');
         }
       } catch (err) {
         console.error('Error fetching global notice:', err);
-        setNoticeError('An unexpected error occurred while fetching global notice.');
+        // Silent fallback: do not show error banner on static hosts
       }
     };
     fetchNotice();

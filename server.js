@@ -370,26 +370,42 @@ app.post('/api/generate', async (req, res) => {
     }
 
     const makePayload = (count) => ({ model, prompt, num_images: count, size: '1024x1024' });
-    const r = await fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(makePayload(n)) });
-    const contentType = r.headers.get('content-type') || '';
-    const rawText = await r.text();
-    let data = null;
-    try { if (contentType.includes('application/json')) data = JSON.parse(rawText); } catch {}
-    if (!r.ok || !data) {
-      const msg = (data && (data.message || data.error || data.detail || data.reason)) || 'Image provider error';
-      return res.status(r.status).json({ message: msg });
-    }
+    const extractImages = (dataObj) => {
+      const src = Array.isArray(dataObj?.images) ? dataObj.images : Array.isArray(dataObj?.data) ? dataObj.data : [];
+      return src.map((img) => {
+        if (typeof img === 'string') return { url: img };
+        if (img && typeof img.url === 'string') return { url: img.url };
+        if (img && typeof img.base64 === 'string') return { url: `data:image/png;base64,${img.base64}` };
+        if (img && typeof img.b64_json === 'string') return { url: `data:image/png;base64,${img.b64_json}` };
+        if (img && typeof img.b64 === 'string') return { url: `data:image/png;base64,${img.b64}` };
+        return null;
+      }).filter(Boolean);
+    };
 
     let images = [];
-    const src = Array.isArray(data.images) ? data.images : Array.isArray(data.data) ? data.data : [];
-    images = src.map((img) => {
-      if (typeof img === 'string') return { url: img };
-      if (img && typeof img.url === 'string') return { url: img.url };
-      if (img && typeof img.base64 === 'string') return { url: `data:image/png;base64,${img.base64}` };
-      if (img && typeof img.b64_json === 'string') return { url: `data:image/png;base64,${img.b64_json}` };
-      if (img && typeof img.b64 === 'string') return { url: `data:image/png;base64,${img.b64}` };
-      return null;
-    }).filter(Boolean);
+    const r1 = await fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(makePayload(n)) });
+    const ct1 = r1.headers.get('content-type') || '';
+    const raw1 = await r1.text();
+    let data1 = null;
+    try { if (ct1.includes('application/json')) data1 = JSON.parse(raw1); } catch {}
+    if (!r1.ok || !data1) {
+      const msg = (data1 && (data1.message || data1.error || data1.detail || data1.reason)) || 'Image provider error';
+      return res.status(r1.status).json({ message: msg });
+    }
+    images = extractImages(data1);
+
+    const neededMore = Math.max(0, n - images.length);
+    if (neededMore > 0) {
+      const r2 = await fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(makePayload(neededMore)) });
+      const ct2 = r2.headers.get('content-type') || '';
+      const raw2 = await r2.text();
+      let data2 = null;
+      try { if (ct2.includes('application/json')) data2 = JSON.parse(raw2); } catch {}
+      if (r2.ok && data2) {
+        images = images.concat(extractImages(data2));
+      }
+      images = images.slice(0, n);
+    }
 
     const count = images.length || n;
     const cost = IMAGE_COST * count;
@@ -437,7 +453,8 @@ app.post('/api/cashfree', async (req, res) => {
         customer_phone
       },
       order_meta: {
-        return_url: finalReturnUrl
+        return_url: finalReturnUrl,
+        payment_methods: 'upi'
       }
     };
 
@@ -451,12 +468,18 @@ app.post('/api/cashfree', async (req, res) => {
       },
       body: JSON.stringify(payload)
     });
-    const data = await r.json();
-    if (r.ok && data.payment_link) {
-      return res.status(200).json({ success: true, paymentLink: data.payment_link, paymentSessionId: data.payment_session_id });
+    const raw = await r.text();
+    let data = null;
+    try { data = JSON.parse(raw); } catch {}
+    if (r.ok && data) {
+      const link = data.payment_link || (data.payment_session_id ? `https://payments.cashfree.com/order/#${data.payment_session_id}` : null);
+      if (link) {
+        return res.status(200).json({ success: true, paymentLink: link, paymentSessionId: data.payment_session_id });
+      }
     }
-    console.error('Cashfree API Error:', data);
-    return res.status(400).json({ success: false, message: data.message || 'Failed to initiate Cashfree payment' });
+    console.error('Cashfree API Error:', data || raw);
+    const msg = (data && (data.message || data.reason || data.error)) || raw || 'Failed to initiate Cashfree payment';
+    return res.status(400).json({ success: false, message: msg });
   } catch (e) {
     console.error('Cashfree endpoint error:', e);
     return res.status(500).json({ message: 'Internal Server Error' });

@@ -5,7 +5,9 @@ const getBase = () => {
   const cfg = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_BASE_URL) || '';
   const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
   const isDev = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.DEV) || false;
-  return cfg || (isDev ? 'http://localhost:3000' : origin);
+  if (cfg) return cfg;
+  if (isDev) return 'http://localhost:3000';
+  return origin && origin.includes('onrender.com') ? origin : 'https://veronikaextra-v1.onrender.com';
 };
 
 const withAuth = (token?: string) => {
